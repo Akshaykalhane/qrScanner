@@ -1,43 +1,84 @@
 import React, { useEffect, useRef, useState } from 'react';
 import QrScanner from 'qr-scanner';
-import styles from './homepage.module.css'
-import qrFrame from "/frameqr.png"
+import styles from './homepage.module.css';
+import qrFrame from "/frameqr.png";
+import PreLoader from '../../components/preLoader/PreLoader';
 
 const HomePage = () => {
     const [scanResult, setScanResult] = useState(null);
     const videoRef = useRef(null);
     const qrScannerRef = useRef(null);
+    const [isScannerView, setScannerView] = useState(false);
+    const [isLoading,setIsLoading]=useState(false);
 
     useEffect(() => {
-        // Initialize QR Scanner when component mounts
-        qrScannerRef.current = new QrScanner(videoRef.current, result => {
-            setScanResult(result);
-            qrScannerRef.current.stop(); // Stop scanning after successful result
-        });
+        if (isScannerView) {
+            setIsLoading(true)
+            // Initialize QR Scanner when the scanner view is active
+            qrScannerRef.current = new QrScanner(videoRef.current, result => {
+                setScanResult(result);
+                if(result){
+                    console.log(result);
+                }
+                setScannerView(false);
+                qrScannerRef.current.stop(); // Stop scanning after successful result
+            });
 
-        qrScannerRef.current.start()
-            .catch(error => console.error('Error starting QR scanner:', error));
+            qrScannerRef.current.start().then(()=>{
+                setIsLoading(false);
+            })
+                .catch(error => console.error('Error starting QR scanner:', error));
 
-        // Cleanup on unmount
-        return () => {
-            if (qrScannerRef.current) {
-                qrScannerRef.current.stop();
-            }
-        };
-    }, []);
+            // Cleanup on unmount or when switching views
+            return () => {
+                if (qrScannerRef.current) {
+                    qrScannerRef.current.stop();
+                }
+            };
+        }
+
+    }, [isScannerView]);
+
+    const restart=()=>{
+        
+    }
+
+    const handleScanButtonClick = () => {
+        setScannerView(true);
+    };
 
     return (
         <div className={`flex-col-center ${styles.homePage}`}>
-            <div className={styles.heading}>
+            <div className={`flex-col-center ${styles.heading}`}>
                 <h1>Scan QR Code</h1>
             </div>
-            <div className={styles.qrReader}>
-                <div className={styles.cameraWindow}>
-                    <video ref={videoRef} className={styles.qrScanVideo}></video>
-                    {/* <img src={qrFrame} alt='frameqr' /> */}
-                </div>
+            <div className={`${styles.buttonContainer}`}>
+                    <button onClick={handleScanButtonClick}>Scan</button>
             </div>
-            {scanResult && <p>Scanned Data: {scanResult}</p>}
+            {
+                isScannerView && (
+                    <div className={`flex-col-center ${styles.qrReader}`}>
+                        <div className={`flex-col-center ${styles.cameraWindow}`}>
+                            {isLoading && <PreLoader />}
+                            <video ref={videoRef} className={styles.qrScanVideo}></video>
+                            <div className={`flex-col-center ${styles.frameContainer}`}>
+                                <div className={styles.scannerLine}></div>
+                                <img src={qrFrame} alt='frameqr' className={styles.frameImage} />
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            
+            {
+                scanResult && <div className={styles.resultWindow}>
+                    <p>Scanned Data: {scanResult}</p>
+                </div>
+            }
+            {
+                
+            }
+           
         </div>
     );
 };
